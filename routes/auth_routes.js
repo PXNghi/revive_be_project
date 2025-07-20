@@ -10,7 +10,7 @@ router.post("/login", authController.signIn);
 router.post("/logout", identifier, authController.signOut);
 router.post("/send-verification-code", authController.sendVerificationCode);
 router.patch("/change-password", identifier, authController.changePassword);
-router.patch("/forgot-password", authController.sendForgotPasswordCode);
+router.patch("/send-forgot-password-code", authController.sendForgotPasswordCode);
 router.post("/confirm-forgot-verification-code", authController.confirmForgotVerificationCode);
 router.patch("/reset-password", authController.resetPassword);
 

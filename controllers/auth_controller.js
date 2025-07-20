@@ -10,6 +10,9 @@ const {
 	signUpValidator,
 	signInValidator,
 	acceptVerificationCodeValidator,
+	changePasswordValidator,
+	resetPasswordValidator,
+	sendVerificationCodeValidator,
 } = require("../validators/auth_validators");
 const { exist } = require("joi");
 
@@ -246,24 +249,24 @@ exports.sendVerificationCode = async (req, res) => {
 				.json({ success: false, message: "User already verified" });
 		}
 
-		const code = Math.floor(Math.random() * 1000000);
-		const hashedCode = hmacProcess(
-			code.toString(),
-			process.env.HMAC_SECRET_KEY
-		);
-		let emailContent = "<h2>Send verification code</h2>";
+		const codeVerified = Math.floor(Math.random() * 1000000).toString();
+		let emailContent = "<h2>Welcome to ReVive App</h2>";
 		emailContent +=
 			"<p>This is your verification code: " + codeVerified + "</p>";
 		emailContent +=
 			"<p>This code will be expired in 10 minutes. Please use it to confirm your account and do not share with anyone. Thank you!</p>";
 		emailContent += "<p>Best regards,<br>ReVive App</p>";
 
+		console.log("sending mail");
+
 		let info = await transport.sendMail({
 			from: process.env.NODE_SENDING_EMAIL_ADDRESS,
 			to: user.email,
-			subject: "[ReVive App] Send Verification Code",
+			subject: "[ReVive App] Email Verification",
 			html: emailContent,
 		});
+
+		console.log("sended mail");
 
 		if (info.accepted[0] === user.email) {
 			const hashedCodeVerification = hmacProcess(
@@ -329,6 +332,7 @@ exports.changePassword = async (req, res) => {
 
 exports.sendForgotPasswordCode = async (req, res) => {
 	const { email } = req.body;
+	console.log("email", email);
 	try {
 		const { error, value } = sendVerificationCodeValidator.validate(
 			req.body
@@ -346,11 +350,7 @@ exports.sendForgotPasswordCode = async (req, res) => {
 				.json({ success: false, message: "User not found" });
 		}
 
-		const code = Math.floor(Math.random() * 1000000);
-		const hashedCode = hmacProcess(
-			code.toString(),
-			process.env.HMAC_SECRET_KEY
-		);
+		const codeVerified = Math.floor(Math.random() * 1000000).toString();
 		let emailContent = "<h2>Reset password</h2>";
 		emailContent +=
 			"<p>This is your verification code: " + codeVerified + "</p>";
@@ -361,7 +361,7 @@ exports.sendForgotPasswordCode = async (req, res) => {
 		let info = await transport.sendMail({
 			from: process.env.NODE_SENDING_EMAIL_ADDRESS,
 			to: user.email,
-			subject: "[ReVive App] Send Verification Code",
+			subject: "[ReVive App] Send Forget Password Code",
 			html: emailContent,
 		});
 
@@ -373,21 +373,19 @@ exports.sendForgotPasswordCode = async (req, res) => {
 			user.forgetPasswordCode = hashedCodeVerification;
 			user.forgetPasswordCodeValidation = Date.now();
 			await user.save();
-			return res
-				.status(200)
-				.json({
-					success: true,
-					message: "Send verification code successfully",
-				});
+			return res.status(200).json({
+				success: true,
+				message: "Send verification code successfully",
+			});
 		} else {
-			return res
-				.status(400)
-				.json({
-					success: false,
-					message: "Send verification code failed. Please try again",
-				});
+			return res.status(400).json({
+				success: false,
+				message: "Send verification code failed. Please try again",
+			});
 		}
-	} catch (error) {}
+	} catch (error) {
+		console.log("Error sendVerificationCode: ", error);
+	}
 };
 
 exports.confirmForgotVerificationCode = async (req, res) => {
@@ -412,13 +410,11 @@ exports.confirmForgotVerificationCode = async (req, res) => {
 		}
 
 		if (!user.forgetPasswordCode || !user.forgetPasswordCodeValidation) {
-			return res
-				.status(400)
-				.json({
-					success: false,
-					message:
-						"Please go back and try to get verification code again with your email",
-				});
+			return res.status(400).json({
+				success: false,
+				message:
+					"Please go back and try to get verification code again with your email",
+			});
 		} else {
 			if (
 				Date.now() - user.forgetPasswordCodeValidation >
@@ -429,66 +425,73 @@ exports.confirmForgotVerificationCode = async (req, res) => {
 					message: "Forgot password code has been expired!",
 				});
 			} else {
-                const codeValue = provided_code.toString();
-                const hashedCodeValue = hmacProcess(
-                    codeValue,
-                    process.env.HMAC_SECRET_KEY
-                );
-                if (hashedCodeValue === user.forgetPasswordCode) {
-                    user.forgetPasswordCode = undefined;
-                    user.forgetPasswordCodeValidation = undefined;
-                    await user.save();
-                    return res.status(200).json({
-                        success: true,
-                        message: "Confirm verification code successfully",
-                    });
-                } else {
-                    return res.status(400).json({
-                        success: false,
-                        message: "Confirm verification code is not true. Please try again",
-                    });
-                }
-            }
+				const codeValue = provided_code.toString();
+				const hashedCodeValue = hmacProcess(
+					codeValue,
+					process.env.HMAC_SECRET_KEY
+				);
+				if (hashedCodeValue === user.forgetPasswordCode) {
+					user.forgetPasswordCode = undefined;
+					user.forgetPasswordCodeValidation = undefined;
+					await user.save();
+					return res.status(200).json({
+						success: true,
+						message: "Confirm verification code successfully",
+					});
+				} else {
+					return res.status(400).json({
+						success: false,
+						message:
+							"Confirm verification code is not true. Please try again",
+					});
+				}
+			}
 		}
 	} catch (error) {
-        console.log("Error confirmForgotVerificationCode: ", error);
-    }
+		console.log("Error confirmForgotVerificationCode: ", error);
+	}
 };
 
 exports.resetPassword = async (req, res) => {
-    const { email, new_password, confirmed_password } = req.body;
-    try {
-        const { error, value } = resetPasswordValidator.validate(req.body);
+	const { email, new_password, confirmed_password } = req.body;
+	try {
+		const { error, value } = resetPasswordValidator.validate(req.body);
 
-        if (error) {
-            return res.status(400).json({ message: error.details[0].message });
-        }
+		if (error) {
+			return res.status(400).json({ message: error.details[0].message });
+		}
 
-        const user = await User.findOne({ email });
+		const user = await User.findOne({ email });
 
-        if (!user) {
-            return res
-                .status(404)
-                .json({ success: false, message: "User not found" });
-        }
+		if (!user) {
+			return res
+				.status(404)
+				.json({ success: false, message: "User not found" });
+		}
 
-        if (!user.forgetPasswordCode || !user.forgetPasswordCodeValidation) {
-            if (new_password !== confirmed_password) {
-                return res.status(400).json({
-                    success: false,
-                    message: "New password and confirmed password do not match",
-                });
-            } else {
-                const hashedPassword = await hashing(new_password, 12);
-                user.password = hashedPassword;
-                await user.save();
-                return res.status(200).json({
-                    success: true,
-                    message: "Reset password successfully",
-                });
-            }
-        }
-    } catch (error) {
-        console.log("Error resetPassword: ", error);
-    }
-}
+		if (!user.forgetPasswordCode || !user.forgetPasswordCodeValidation) {
+			if (new_password !== confirmed_password) {
+				return res.status(400).json({
+					success: false,
+					message: "New password and confirmed password do not match",
+				});
+			} else {
+				const hashedPassword = await hashing(new_password, 12);
+				user.password = hashedPassword;
+				await user.save();
+				return res.status(200).json({
+					success: true,
+					message: "Reset password successfully",
+				});
+			}
+		} else {
+			return res.status(400).json({
+				success: false,
+				message:
+					"Please go back and try to get verification code again with your email",
+			});
+		}
+	} catch (error) {
+		console.log("Error resetPassword: ", error);
+	}
+};

@@ -28,6 +28,7 @@ exports.changePasswordValidator = Joi.object({
 });
 
 exports.resetPasswordValidator = Joi.object({
+    email: Joi.string().email().required(),
     new_password: Joi.string().required().min(6).pattern(new RegExp("(?=.*[A-Z])")),
     confirmed_password: Joi.string().required().min(6).pattern(new RegExp("(?=.*[A-Z])")),
 });
