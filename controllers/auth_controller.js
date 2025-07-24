@@ -14,7 +14,6 @@ const {
 	resetPasswordValidator,
 	sendVerificationCodeValidator,
 } = require("../validators/auth_validators");
-const { exist } = require("joi");
 
 exports.signUp = async (req, res) => {
 	const { full_name, email, password, confirmed_password } = req.body;
