@@ -18,26 +18,43 @@ const userSchema = new mongoose.Schema(
 		password: {
 			type: String,
 			required: true,
-            select: false
+			select: false,
 		},
-		
+
 		phone: {
 			type: String,
 			trim: true,
 		},
 
-        image: {
-            type: String,
-        },
-
-        verified: {
-            type: Boolean,
-            default: false
-        },
-
-        role: {
+		image: {
 			type: String,
-			default: "User"
+		},
+
+		addresses: [
+			{
+				address: String,
+				location: {
+					type: {
+						type: String,
+						enum: ["Point"],
+						default: "Point",
+					},
+					coordinates: {
+						type: [Number], // [longitude, latitude]
+						required: true,
+					},
+				},
+			},
+		],
+
+		verified: {
+			type: Boolean,
+			default: false,
+		},
+
+		role: {
+			type: String,
+			default: "User",
 		},
 
 		verificationCode: {
@@ -61,7 +78,7 @@ const userSchema = new mongoose.Schema(
 		},
 	},
 	{
-		timestamps: {createdAt: "created_at", updatedAt: "updated_at"},
+		timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
 	}
 );
 
