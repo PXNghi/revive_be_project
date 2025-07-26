@@ -1,9 +1,38 @@
 const Branch = require("../models/branch_model");
 
+exports.getAllBranchesNearby = async (req, res) => {
+	const { lat, lon } = req.query;
+	if (!lat || !lon) {
+		return res.status(400).json({
+			success: false,
+			message: "Please provide latitude and longitude",
+		});
+	}
+	try {
+		const branches = await Branch.find({
+			location: {
+				$nearSphere: {
+					$geometry: {
+						type: "Point",
+						coordinates: [parseFloat(lon), parseFloat(lat)],
+					},
+					$maxDistance: 100000,
+				},
+			},
+		});
+		return res.status(200).json({ success: true, data: branches });
+	} catch (error) {
+		console.log("Error getAllBranchesNearby: ", error);
+		return res
+			.status(400)
+			.json({ success: false, message: "Internal server error" });
+	}
+};
+
 exports.getAllBranches = async (req, res) => {
 	try {
 		const branches = await Branch.find();
-		return res.status(201).json({ success: true, data: branches });
+		return res.status(200).json({ success: true, data: branches });
 	} catch (error) {
 		console.log("Error getAllBranches: ", error);
 		return res
@@ -18,7 +47,7 @@ exports.getBranchById = async (req, res) => {
 		const { id } = req.params;
 		const branch = await Branch.findById(id);
 		if (branch) {
-			return res.status(201).json({ success: true, data: branch });
+			return res.status(200).json({ success: true, data: branch });
 		} else {
 			return res
 				.status(404)
