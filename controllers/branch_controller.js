@@ -86,7 +86,7 @@ exports.updateBranch = async (req, res) => {
 			return res
 				.status(404)
 				.json({ success: false, message: "Branch not found" });
-		res.status(200).json({
+		return res.status(200).json({
 			success: true,
 			message: "Branch updated successfully",
 			data: updated,

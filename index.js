@@ -11,6 +11,8 @@ dotenv.config();
 const authRoutes = require("./routes/auth_routes");
 const userRoutes = require("./routes/user_routes");
 const branchRoutes = require("./routes/branch_routes");
+const categoryRoutes = require("./routes/category_routes");
+const productRoutes = require("./routes/product_routes");
 
 const app = express();
 const port = process.env.PORT || 8080;
@@ -27,6 +29,8 @@ connectDB();
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/branch", branchRoutes);
+app.use("/api/category", categoryRoutes);
+app.use("/api/product", productRoutes);
 
 app.listen(port, "0.0.0.0", () => {
 	console.log(`Server is running on http://0.0.0.0:${port}`);
