@@ -310,6 +310,17 @@ exports.changePassword = async (req, res) => {
 				.json({ success: false, message: "User not found" });
 		}
 
+		const isMatchedPassword = await compareHashPassword(
+			old_password,
+			user.password
+		);
+
+		if (!isMatchedPassword) {
+			return res
+				.status(400)
+				.json({ success: false, message: "Mật khẩu cũ không đúng" });
+		}
+
 		if (new_password !== confirmed_password) {
 			return res.status(400).json({
 				success: false,
