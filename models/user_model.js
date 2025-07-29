@@ -47,6 +47,11 @@ const userSchema = new mongoose.Schema(
 			},
 		],
 
+		is_active: {
+			type: Boolean,
+			default: true,
+		},
+
 		verified: {
 			type: Boolean,
 			default: false,
