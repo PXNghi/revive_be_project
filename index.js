@@ -14,6 +14,8 @@ const { initSocketIO } = require('./controllers/socket_controller');
 const authRoutes = require("./routes/auth_routes");
 const userRoutes = require("./routes/user_routes");
 const branchRoutes = require("./routes/branch_routes");
+const categoryRoutes = require("./routes/category_routes");
+const productRoutes = require("./routes/product_routes");
 const messageRoutes = require("./routes/message_routes");
 const uploadRoutes = require("./routes/upload_routes");
 const path = require("path");
@@ -43,6 +45,8 @@ app.use("/public", express.static(path.join(__dirname, "public")));
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/branch", branchRoutes);
+app.use("/api/category", categoryRoutes);
+app.use("/api/product", productRoutes);
 app.use("/api/message", messageRoutes);
 app.use("/api/upload", uploadRoutes);
 
