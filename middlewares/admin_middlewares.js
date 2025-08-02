@@ -1,6 +1,6 @@
 const User = require("../models/user_model");
 
-exporsts.adminMiddleware = (req, res, next) => {
+exports.adminMiddleware = (req, res, next) => {
 	try {
 		if (!req.user) {
 			return res

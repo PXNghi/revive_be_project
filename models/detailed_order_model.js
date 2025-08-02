@@ -12,14 +12,16 @@ const detailedOrderSchema = new mongoose.Schema(
             ref: "Product",
             required: true,
         },
-        price: {
-            type: Number,
-            required: true,
+        productNote: {
+            type: String,
         },
         amount: {
             type: Number,
             required: true,
         },
+        image: {
+            type: String,
+        }
     },
     {
         timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
