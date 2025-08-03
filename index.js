@@ -21,6 +21,7 @@ const uploadRoutes = require("./routes/upload_routes");
 const uploadProductRoutes = require("./routes/upload_product_image_routes");
 const deleteProductImageRoutes = require("./routes/delete_product_image_routes");
 const orderRoutes = require("./routes/order_routes");
+const scheduleRoutes = require("./routes/schedule_routes");
 const path = require("path");
 
 const app = express();
@@ -55,6 +56,7 @@ app.use("/api/upload", uploadRoutes);
 app.use("/api/upload-product", uploadProductRoutes);
 app.use("/api/delete-product-image", deleteProductImageRoutes);
 app.use("/api/order", orderRoutes);
+app.use("/api/order/schedule", scheduleRoutes);
 
 
 initSocketIO(io);
