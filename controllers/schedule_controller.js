@@ -4,7 +4,6 @@ const Order = require("../models/order_model");
 exports.getAvailablePickupSlots = async (req, res) => {
 	try {
 		const { date } = req.query;
-		console.log(date);
 		if (!date) return res.status(400).json({ message: "Thiếu ngày." });
 
 		const startTime = new Date(`${date}T08:00:00.000Z`);
@@ -14,16 +13,14 @@ exports.getAvailablePickupSlots = async (req, res) => {
 		const result = [];
 
 		for (const slot of slots) {
-			// count the number of orders in each time slot
 			const count = await Order.countDocuments({
-				pickupDate: {
+				slotStart: {
 					$gte: slot.start,
 					$lt: slot.end,
 				},
 				status: { $ne: "cancelled" },
 			});
 
-			// if there are less than 3 orders, add the time slot to the available slot list
 			if (count < 2) {
 				result.push({
 					start: slot.start,
@@ -42,6 +39,8 @@ exports.getAvailablePickupSlots = async (req, res) => {
 
 exports.getDisabledDates = async (req, res) => {
 	const { month } = req.query;
+	if (!month) return res.status(400).json({ message: "Thiếu tháng." });
+
 	const year = Number(month.split("-")[0]);
 	const monthNum = Number(month.split("-")[1]) - 1;
 
@@ -51,27 +50,29 @@ exports.getDisabledDates = async (req, res) => {
 		const date = new Date(Date.UTC(year, monthNum, day));
 		if (date.getMonth() !== monthNum) break;
 
-		const startTime = new Date(
-			`${month}-${String(day).padStart(2, "0")}T08:00:00.000Z`
-		);
-		const endTime = new Date(
-			`${month}-${String(day).padStart(2, "0")}T22:00:00.000Z`
-		);
+		const dayString = `${month}-${String(day).padStart(2, "0")}`;
+		const startTime = new Date(`${dayString}T08:00:00.000Z`);
+		const endTime = new Date(`${dayString}T22:00:00.000Z`);
 		const slots = generateTimeSlots(startTime, endTime);
 
 		let allFull = true;
 		for (const slot of slots) {
 			const count = await Order.countDocuments({
-				pickupDate: { $gte: slot.start, $lt: slot.end },
+				slotStart: { $gte: slot.start, $lt: slot.end },
 				status: { $ne: "cancelled" },
 			});
-			if (count < 3) {
+
+			if (count < 2) {
 				allFull = false;
 				break;
 			}
 		}
-		if (allFull) disabledDates.push(date.toISOString().split("T")[0]);
+
+		if (allFull) {
+			disabledDates.push(date.toISOString().split("T")[0]);
+		}
 	}
 
 	return res.json({ success: true, data: disabledDates });
 };
+

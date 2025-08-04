@@ -1,5 +1,6 @@
 const Order = require("../models/order_model");
 const DetailedOrder = require("../models/detailed_order_model");
+const Product = require("../models/product_model");
 
 exports.getAllOrders = async (req, res) => {
 	const orders = await Order.find();
@@ -97,12 +98,10 @@ exports.updateOrderByAdmin = async (req, res) => {
 		if (pickupDate !== undefined) order.pickupDate = new Date(pickupDate);
 		if (collectOption !== undefined) {
 			if (!allowedOptions.includes(collectOption)) {
-				return res
-					.status(400)
-					.json({
-						success: false,
-						message: "Hình thức thu gom không hợp lệ.",
-					});
+				return res.status(400).json({
+					success: false,
+					message: "Hình thức thu gom không hợp lệ.",
+				});
 			}
 			order.collectOption = collectOption;
 		}
@@ -110,12 +109,10 @@ exports.updateOrderByAdmin = async (req, res) => {
 		if (branchProcess !== undefined) order.branchProcess = branchProcess;
 		if (status !== undefined) {
 			if (!allowedStatuses.includes(status)) {
-				return res
-					.status(400)
-					.json({
-						success: false,
-						message: "Trạng thái không hợp lệ.",
-					});
+				return res.status(400).json({
+					success: false,
+					message: "Trạng thái không hợp lệ.",
+				});
 			}
 			order.status = status;
 		}
@@ -141,8 +138,8 @@ exports.createOrder = async (req, res) => {
 			userName,
 			userPhone,
 			userAddress,
-			pickupDate,
-			collectOption,
+			slotStart,
+			slotEnd,
 			userNote,
 			products,
 		} = req.body;
@@ -151,8 +148,8 @@ exports.createOrder = async (req, res) => {
 			!userName ||
 			!userPhone ||
 			!userAddress ||
-			!pickupDate ||
-			!collectOption ||
+			!slotStart ||
+			!slotEnd ||
 			!products ||
 			!Array.isArray(products) ||
 			products.length === 0
@@ -164,15 +161,18 @@ exports.createOrder = async (req, res) => {
 
 		let totalPrice = 0;
 		for (const item of products) {
-			if (!item.productId || !item.price || !item.amount) {
-				return res
-					.status(400)
-					.json({
-						success: false,
-						message: "Thông tin sản phẩm không hợp lệ.",
-					});
+			const product = await Product.findById(item.productId);
+			if (!product) {
+				return res.status(400).json({
+					success: false,
+					message: "Thông tin sản phẩm không hợp lệ.",
+				});
 			}
-			totalPrice += item.price * item.amount;
+			if (!product.amount) {
+				item.amount = 1;
+			}
+			const currentPrice = product.price;
+			totalPrice += currentPrice * item.amount;
 		}
 
 		const newOrder = await Order.create({
@@ -180,8 +180,9 @@ exports.createOrder = async (req, res) => {
 			userName,
 			userPhone,
 			userAddress,
-			pickupDate,
-			collectOption,
+			slotStart: new Date(slotStart),
+			slotEnd: new Date(slotEnd),
+			pickupDate: new Date(slotStart).toISOString().split("T")[0],
 			userNote,
 			totalPrice,
 			status: "waiting",
@@ -197,6 +198,7 @@ exports.createOrder = async (req, res) => {
 		}
 
 		res.status(201).json({
+			success: true,
 			message: "Tạo đơn hàng thành công.",
 			data: newOrder,
 		});

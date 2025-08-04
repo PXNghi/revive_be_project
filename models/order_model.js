@@ -23,9 +23,12 @@ const orderSchema = new mongoose.Schema(
             type: Date,
             required: true,
         },
-        collectOption: {
-            type: String,
-            enum: ["Pickup", "ComeBranch"],
+        slotStart: {
+            type: Date,
+            required: true,
+        },
+        slotEnd: {
+            type: Date,
             required: true,
         },
         adminNote: {
