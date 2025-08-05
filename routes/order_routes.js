@@ -11,5 +11,7 @@ router.get("/get-detailed-order-by-order-id/:orderId", orderController.getAllDet
 router.put("/update-order-status/:id", orderController.updateOrderStatus);
 router.put("/update-order-admin/:orderId", authMiddleware, adminMiddleware, orderController.updateOrderByAdmin);
 router.post("/create-new-order", authMiddleware, orderController.createOrder);
+router.get("/get-user-orders-by-status/:status", authMiddleware, orderController.getOrdersByStatusWithUserId);
+router.get("/get-all-orders-by-status/:status", authMiddleware, adminMiddleware, orderController.getAllOrdersByStatus);
 
 module.exports = router;

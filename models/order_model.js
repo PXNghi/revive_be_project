@@ -19,21 +19,15 @@ const orderSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
-        pickupDate: {
-            type: String,
-            required: true,
-        },
-        pickupTime: {
-            type: String,
-            required: true,
-        },
-        slotStart: {
+        pickUpDate: {
             type: Date,
             required: true,
         },
-        slotEnd: {
-            type: Date,
-            required: true,
+        startTime: {
+            type: String,
+        },
+        endTime: {
+            type: String,
         },
         adminNote: {
             type: String,

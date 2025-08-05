@@ -4,7 +4,7 @@ const Product = require("../models/product_model");
 const moment = require("moment-timezone");
 
 exports.getAllOrders = async (req, res) => {
-	const orders = await Order.find().select('-slotStart -slotEnd').sort({ createdAt: -1 });
+	const orders = await Order.find().sort({ created_at: -1 });
 	res.status(200).json({ success: true, data: orders });
 };
 
@@ -139,8 +139,7 @@ exports.createOrder = async (req, res) => {
 			userName,
 			userPhone,
 			userAddress,
-			slotStart,
-			slotEnd,
+			pickUpDate,
 			userNote,
 			products,
 		} = req.body;
@@ -149,8 +148,7 @@ exports.createOrder = async (req, res) => {
 			!userName ||
 			!userPhone ||
 			!userAddress ||
-			!slotStart ||
-			!slotEnd ||
+			!pickUpDate ||
 			!products ||
 			!Array.isArray(products) ||
 			products.length === 0
@@ -176,22 +174,12 @@ exports.createOrder = async (req, res) => {
 			totalPrice += currentPrice * item.amount;
 		}
 
-		const slotStartVN = moment.tz(slotStart, "Asia/Ho_Chi_Minh");
-		const slotEndVN = moment.tz(slotEnd, "Asia/Ho_Chi_Minh");
-		const pickupTime = `${slotStartVN.format("HH:mm")} - ${slotEndVN.format(
-			"HH:mm"
-		)}`;
-		const pickupDate = slotStartVN.format("YYYY-MM-DD");
-
 		const newOrder = await Order.create({
 			userId: req.user.id,
 			userName,
 			userPhone,
 			userAddress,
-			slotStart: slotStartVN,
-			slotEnd: slotEndVN,
-			pickupDate: pickupDate,
-			pickupTime: pickupTime,
+			pickUpDate,
 			userNote,
 			totalPrice,
 			status: "waiting",
@@ -220,3 +208,37 @@ exports.createOrder = async (req, res) => {
 		});
 	}
 };
+
+exports.getOrdersByStatusWithUserId = async (req, res) => {
+	try {
+		const { status } = req.params;
+		const userId = req.user.id;
+
+		const orders = await Order.find({ userId, status }).sort({ created_at: -1 });
+
+		res.status(200).json({ success: true, data: orders });
+	} catch (error) {
+		console.error("Lỗi tạo đơn hàng:", error);
+		res.status(500).json({
+			success: false,
+			message: "Đã xảy ra lỗi khi tạo đơn hàng.",
+		});
+	}
+};
+
+exports.getAllOrdersByStatus = async (req, res) => {
+	try {
+		const { status } = req.params;
+		const orders = await Order.find({ status }).sort({ created_at: -1 });
+
+		res.status(200).json({ success: true, data: orders });
+	} catch (error) {
+		console.error("Lỗi tạo đơn hàng:", error);
+		res.status(500).json({
+			success: false,
+			message: "Đã xảy ra lỗi khi tạo đơn hàng.",
+		});
+	}
+};
+
+
