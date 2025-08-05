@@ -1,13 +1,19 @@
 const generateTimeSlots = require("../utils/generate_time_pickup");
 const Order = require("../models/order_model");
+const { DateTime } = require("luxon");
 
 exports.getAvailablePickupSlots = async (req, res) => {
 	try {
 		const { date } = req.query;
 		if (!date) return res.status(400).json({ message: "Thiếu ngày." });
 
-		const startTime = new Date(`${date}T08:00:00.000Z`);
-		const endTime = new Date(`${date}T22:00:00.000Z`);
+		const startTime = DateTime.fromISO(`${date}T08:00:00`, {
+			zone: "Asia/Ho_Chi_Minh",
+		});
+		const endTime = DateTime.fromISO(`${date}T22:00:00`, {
+			zone: "Asia/Ho_Chi_Minh",
+		});
+
 		const slots = generateTimeSlots(startTime, endTime);
 
 		const result = [];
@@ -15,16 +21,16 @@ exports.getAvailablePickupSlots = async (req, res) => {
 		for (const slot of slots) {
 			const count = await Order.countDocuments({
 				slotStart: {
-					$gte: slot.start,
-					$lt: slot.end,
+					$gte: slot.start.toJSDate(),
+					$lt: slot.end.toJSDate(),
 				},
 				status: { $ne: "cancelled" },
 			});
 
 			if (count < 2) {
 				result.push({
-					start: slot.start,
-					end: slot.end,
+					start: slot.start.toISO(),
+					end: slot.end.toISO(),
 					available: 2 - count,
 				});
 			}

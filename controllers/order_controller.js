@@ -1,9 +1,10 @@
 const Order = require("../models/order_model");
 const DetailedOrder = require("../models/detailed_order_model");
 const Product = require("../models/product_model");
+const moment = require("moment-timezone");
 
 exports.getAllOrders = async (req, res) => {
-	const orders = await Order.find();
+	const orders = await Order.find().select('-slotStart -slotEnd').sort({ createdAt: -1 });
 	res.status(200).json({ success: true, data: orders });
 };
 
@@ -175,14 +176,22 @@ exports.createOrder = async (req, res) => {
 			totalPrice += currentPrice * item.amount;
 		}
 
+		const slotStartVN = moment.tz(slotStart, "Asia/Ho_Chi_Minh");
+		const slotEndVN = moment.tz(slotEnd, "Asia/Ho_Chi_Minh");
+		const pickupTime = `${slotStartVN.format("HH:mm")} - ${slotEndVN.format(
+			"HH:mm"
+		)}`;
+		const pickupDate = slotStartVN.format("YYYY-MM-DD");
+
 		const newOrder = await Order.create({
 			userId: req.user.id,
 			userName,
 			userPhone,
 			userAddress,
-			slotStart: new Date(slotStart),
-			slotEnd: new Date(slotEnd),
-			pickupDate: new Date(slotStart).toISOString().split("T")[0],
+			slotStart: slotStartVN,
+			slotEnd: slotEndVN,
+			pickupDate: pickupDate,
+			pickupTime: pickupTime,
 			userNote,
 			totalPrice,
 			status: "waiting",
@@ -194,6 +203,7 @@ exports.createOrder = async (req, res) => {
 				productId: item.productId,
 				price: item.price,
 				amount: item.amount,
+				image: item.image,
 			});
 		}
 

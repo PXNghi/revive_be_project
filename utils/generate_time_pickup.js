@@ -1,15 +1,18 @@
-function generateTimeSlots(startTime, endTime, intervalMinutes = 60) {
+function generateTimeSlots(startTime, endTime, intervalMinutes = 60, breakMinutes = 30) {
 	const slots = [];
-	let current = new Date(startTime);
 
-	while (current < endTime) {
-		const next = new Date(current.getTime() + intervalMinutes * 60000);
+	let current = startTime;
+	while (current.plus({ minutes: intervalMinutes }) <= endTime) {
+		const next = current.plus({ minutes: intervalMinutes });
 		slots.push({
-			start: new Date(current),
-			end: new Date(next),
+			start: current,
+			end: next,
 		});
-		current = next;
+		
+		current = next.plus({ minutes: breakMinutes });
 	}
+
 	return slots;
 }
+
 module.exports = generateTimeSlots;
