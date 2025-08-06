@@ -19,6 +19,10 @@ const detailedOrderSchema = new mongoose.Schema(
             type: Number,
             required: true,
         },
+        price: {
+            type: Number,
+            required: true,
+        },
         image: {
             type: String,
         }
