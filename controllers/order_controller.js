@@ -8,16 +8,6 @@ exports.getAllOrders = async (req, res) => {
 	res.status(200).json({ success: true, data: orders });
 };
 
-exports.getOrdersById = async (req, res) => {
-	const orders = await Order.findById(req.params.id);
-	if (!orders) {
-		return res
-			.status(404)
-			.json({ success: false, message: "Không tìm thấy đơn hàng." });
-	}
-	return res.status(200).json({ success: true, data: orders });
-};
-
 exports.getAllDetailedOrdersByOrderId = async (req, res) => {
 	try {
 		const detailedOrders = await DetailedOrder.find({
@@ -89,7 +79,7 @@ exports.updateOrderStatus = async (req, res) => {
 exports.updateOrderByAdmin = async (req, res) => {
 	try {
 		const { orderId } = req.params;
-		const { pickupDate, collectOption, adminNote, status, branchProcess } =
+		const { pickupDate, deliveringStartTime, orderFinishTime, adminNote, status } =
 			req.body;
 
 		const order = await Order.findById(orderId);
@@ -105,22 +95,15 @@ exports.updateOrderByAdmin = async (req, res) => {
 			"waiting",
 			"confirmed",
 			"delivering",
-			"finished",
+			"completed",
 		];
-		const allowedOptions = ["Pickup", "ComeBranch"];
 
-		if (pickupDate !== undefined) order.pickupDate = new Date(pickupDate);
-		if (collectOption !== undefined) {
-			if (!allowedOptions.includes(collectOption)) {
-				return res.status(400).json({
-					success: false,
-					message: "Hình thức thu gom không hợp lệ.",
-				});
-			}
-			order.collectOption = collectOption;
-		}
+		if (pickupDate !== undefined) order.pickUpDate = new Date(pickupDate);
 		if (adminNote !== undefined) order.adminNote = adminNote;
-		if (branchProcess !== undefined) order.branchProcess = branchProcess;
+		if (deliveringStartTime !== undefined)
+			order.startTime = deliveringStartTime;
+		if (orderFinishTime !== undefined)
+			order.endTime = orderFinishTime;
 		if (status !== undefined) {
 			if (!allowedStatuses.includes(status)) {
 				return res.status(400).json({
@@ -225,7 +208,9 @@ exports.createOrder = async (req, res) => {
 
 const getOrdersWithDetails = async (filter, res) => {
 	try {
-		const orders = await Order.find(filter).sort({ created_at: -1 }).lean();
+		const sortField = filter.status === 'cancelled' ? 'updated_at' : 'created_at';
+
+		const orders = await Order.find(filter).sort({ [sortField]: -1 }).lean();
 
 		const orderIds = orders.map((order) => order._id);
 
@@ -281,4 +266,14 @@ exports.getAllOrdersByStatus = async (req, res) => {
 		status === "confirmed" ? { $in: ["confirmed", "delivering"] } : status;
 
 	await getOrdersWithDetails({ status: statusFilter }, res);
+};
+
+exports.getOrdersById = async (req, res) => {
+	const orders = await Order.findById(req.params.id);
+	if (!orders) {
+		return res
+			.status(404)
+			.json({ success: false, message: "Không tìm thấy đơn hàng." });
+	}
+	await getOrdersWithDetails({ _id: req.params.id }, res);
 };

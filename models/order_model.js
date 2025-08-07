@@ -49,7 +49,7 @@ const orderSchema = new mongoose.Schema(
 				"waiting",
 				"confirmed",
 				"delivering",
-				"finished",
+				"completed",
 			],
 			required: true,
 		},
