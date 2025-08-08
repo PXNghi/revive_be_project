@@ -23,6 +23,7 @@ const deleteProductImageRoutes = require("./routes/delete_product_image_routes")
 const orderRoutes = require("./routes/order_routes");
 const scheduleRoutes = require("./routes/schedule_routes");
 const uploadOrderRoutes = require("./routes/upload_order_image_routes");
+const statisticsRoutes = require("./routes/statistics_routes");
 const path = require("path");
 
 const app = express();
@@ -59,6 +60,7 @@ app.use("/api/delete-product-image", deleteProductImageRoutes);
 app.use("/api/order", orderRoutes);
 app.use("/api/order/schedule", scheduleRoutes);
 app.use("/api/upload-order-image", uploadOrderRoutes);
+app.use("/api/statistics", statisticsRoutes);
 
 
 initSocketIO(io);
