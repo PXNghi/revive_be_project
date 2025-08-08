@@ -1,7 +1,7 @@
 const Order = require("../models/order_model");
 const DetailedOrder = require("../models/detailed_order_model");
 const Product = require("../models/product_model");
-const moment = require("moment-timezone");
+const Category = require("../models/category_model");
 
 exports.getAllOrders = async (req, res) => {
 	const orders = await Order.find().sort({ created_at: -1 });
@@ -76,11 +76,69 @@ exports.updateOrderStatus = async (req, res) => {
 	}
 };
 
+// exports.updateOrderByAdmin = async (req, res) => {
+// 	try {
+// 		const { orderId } = req.params;
+// 		const { pickupDate, deliveringStartTime, orderFinishTime, adminNote, status } =
+// 			req.body;
+
+// 		const order = await Order.findById(orderId);
+
+// 		if (!order) {
+// 			return res
+// 				.status(404)
+// 				.json({ success: false, message: "Không tìm thấy đơn hàng." });
+// 		}
+
+// 		const allowedStatuses = [
+// 			"cancelled",
+// 			"waiting",
+// 			"confirmed",
+// 			"delivering",
+// 			"completed",
+// 		];
+
+// 		if (pickupDate !== undefined) order.pickUpDate = new Date(pickupDate);
+// 		if (adminNote !== undefined) order.adminNote = adminNote;
+// 		if (deliveringStartTime !== undefined)
+// 			order.startTime = deliveringStartTime;
+// 		if (orderFinishTime !== undefined)
+// 			order.endTime = orderFinishTime;
+// 		if (status !== undefined) {
+// 			if (!allowedStatuses.includes(status)) {
+// 				return res.status(400).json({
+// 					success: false,
+// 					message: "Trạng thái không hợp lệ.",
+// 				});
+// 			}
+// 			order.status = status;
+// 		}
+
+// 		await order.save();
+
+// 		return res.json({
+// 			success: true,
+// 			message: "Admin cập nhật đơn hàng thành công.",
+// 			data: order,
+// 		});
+// 	} catch (error) {
+// 		console.error(error);
+// 		return res
+// 			.status(500)
+// 			.json({ success: false, message: "Lỗi máy chủ." });
+// 	}
+// };
+
 exports.updateOrderByAdmin = async (req, res) => {
 	try {
 		const { orderId } = req.params;
-		const { pickupDate, deliveringStartTime, orderFinishTime, adminNote, status } =
-			req.body;
+		const {
+			pickupDate,
+			deliveringStartTime,
+			orderFinishTime,
+			adminNote,
+			status,
+		} = req.body;
 
 		const order = await Order.findById(orderId);
 
@@ -102,8 +160,8 @@ exports.updateOrderByAdmin = async (req, res) => {
 		if (adminNote !== undefined) order.adminNote = adminNote;
 		if (deliveringStartTime !== undefined)
 			order.startTime = deliveringStartTime;
-		if (orderFinishTime !== undefined)
-			order.endTime = orderFinishTime;
+		if (orderFinishTime !== undefined) order.endTime = orderFinishTime;
+
 		if (status !== undefined) {
 			if (!allowedStatuses.includes(status)) {
 				return res.status(400).json({
@@ -111,6 +169,33 @@ exports.updateOrderByAdmin = async (req, res) => {
 					message: "Trạng thái không hợp lệ.",
 				});
 			}
+
+			// if old status is not completed and new status is completed
+			if (status === "completed" && order.status !== "completed") {
+				const detailedOrders = await DetailedOrder.find({
+					orderId: order._id,
+				});
+
+				await Promise.all(
+					detailedOrders.map(async (detail) => {
+						// add to amount
+						const updatedProduct = await Product.findByIdAndUpdate(
+							detail.productId,
+							{ $inc: { amount: detail.amount } },
+							{ new: true }
+						);
+
+						// if product existed and has category
+						if (updatedProduct && updatedProduct.category) {
+							await Category.findByIdAndUpdate(
+								updatedProduct.category,
+								{ $inc: { category_amount: detail.amount } }
+							);
+						}
+					})
+				);
+			}
+
 			order.status = status;
 		}
 
@@ -208,9 +293,12 @@ exports.createOrder = async (req, res) => {
 
 const getOrdersWithDetails = async (filter, res) => {
 	try {
-		const sortField = filter.status === 'cancelled' ? 'updated_at' : 'created_at';
+		const sortField =
+			filter.status === "cancelled" ? "updated_at" : "created_at";
 
-		const orders = await Order.find(filter).sort({ [sortField]: -1 }).lean();
+		const orders = await Order.find(filter)
+			.sort({ [sortField]: -1 })
+			.lean();
 
 		const orderIds = orders.map((order) => order._id);
 

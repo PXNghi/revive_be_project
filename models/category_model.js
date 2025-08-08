@@ -12,6 +12,9 @@ const categorySchema = new mongoose.Schema(
         category_image: {
             type: String,
         },
+        category_amount: {
+            type: Number,
+        }
     },
     {
         timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
