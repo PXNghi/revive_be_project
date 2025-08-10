@@ -104,7 +104,7 @@ exports.getAllConversation = async (req, res) => {
 
 
 exports.getConversationById = async (req, res) => {
-    try {
+    try {   
         const currentUserId = req.user._id;
         const { conversationId } = req.params;
 
@@ -144,16 +144,17 @@ exports.getConversationById = async (req, res) => {
 
         // Trả về danh sách tin nhắn đã đọc
         const messages = await Message.find({ conversationId })
-            .sort({ createdAt: 1 })
+            .sort({ created_at: -1 })
             .populate("senderId", "full_name image role");
 
         return res.status(200).json({
+            success: true,
             conversationId,
             messages
         });
     } catch (error) {
         console.log("Error in sendMessage:", error);
-        res.status(500).json({ message: "Internal server error" });
+        res.status(500).json({ success: false, message: "Internal server error" });
     }
 }
 
