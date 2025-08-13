@@ -138,6 +138,7 @@ exports.updateOrderByAdmin = async (req, res) => {
 			orderFinishTime,
 			adminNote,
 			status,
+			totalPrice,
 		} = req.body;
 
 		const order = await Order.findById(orderId);
@@ -161,6 +162,7 @@ exports.updateOrderByAdmin = async (req, res) => {
 		if (deliveringStartTime !== undefined)
 			order.startTime = deliveringStartTime;
 		if (orderFinishTime !== undefined) order.endTime = orderFinishTime;
+		if (totalPrice !== undefined) order.totalPrice = totalPrice;
 
 		if (status !== undefined) {
 			if (!allowedStatuses.includes(status)) {
@@ -168,6 +170,12 @@ exports.updateOrderByAdmin = async (req, res) => {
 					success: false,
 					message: "Trạng thái không hợp lệ.",
 				});
+			}
+
+			if (totalPrice === "" || totalPrice === null || totalPrice === undefined) {
+				return res
+					.status(400)
+					.json({ success: false, message: "Cần nhập tổng tiền của đơn hàng!" });
 			}
 
 			// if old status is not completed and new status is completed
