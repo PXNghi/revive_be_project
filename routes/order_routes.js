@@ -5,10 +5,10 @@ const { adminMiddleware } = require("../middlewares/admin_middlewares");
 
 const router = express.Router();
 
-router.get("/get-all-orders", orderController.getAllOrders);
-router.get("/get-order-by-id/:id", orderController.getOrdersById);
-router.get("/get-detailed-order-by-order-id/:orderId", orderController.getAllDetailedOrdersByOrderId);
-router.put("/cancel-order/:orderId", orderController.updateOrderStatus);
+router.get("/get-all-orders", authMiddleware, orderController.getAllOrders);
+router.get("/get-order-by-id/:id", authMiddleware, orderController.getOrdersById);
+router.get("/get-detailed-order-by-order-id/:orderId", authMiddleware, orderController.getAllDetailedOrdersByOrderId);
+router.put("/cancel-order/:orderId", authMiddleware, orderController.updateOrderStatus);
 router.put("/update-order-admin/:orderId", authMiddleware, adminMiddleware, orderController.updateOrderByAdmin);
 router.post("/create-new-order", authMiddleware, orderController.createOrder);
 router.get("/get-user-orders-by-status/:status", authMiddleware, orderController.getOrdersByStatusWithUserId);
