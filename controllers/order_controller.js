@@ -71,7 +71,7 @@ exports.getAllOrders = async (req, res) => {
 														search
 													),
 												},
-										]
+										  ]
 										: []),
 									{
 										userName: {
@@ -100,7 +100,7 @@ exports.getAllOrders = async (req, res) => {
 								],
 							},
 						},
-				]
+				  ]
 				: []),
 
 			{ $sort: { created_at: -1 } },
@@ -278,19 +278,19 @@ exports.updateOrderByAdmin = async (req, res) => {
 				});
 			}
 
-			if (
-				totalPrice === "" ||
-				totalPrice === null ||
-				totalPrice === undefined
-			) {
-				return res.status(400).json({
-					success: false,
-					message: "Cần nhập tổng tiền của đơn hàng!",
-				});
-			}
-
 			// if old status is not completed and new status is completed
 			if (status === "completed" && order.status !== "completed") {
+				if (
+					totalPrice === "" ||
+					totalPrice === null ||
+					totalPrice === undefined
+				) {
+					return res.status(400).json({
+						success: false,
+						message: "Cần nhập tổng tiền của đơn hàng!",
+					});
+				}
+
 				const detailedOrders = await DetailedOrder.find({
 					orderId: order._id,
 				});
