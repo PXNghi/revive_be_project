@@ -13,6 +13,5 @@ router.post("/reset-password-admin", authMiddleware, userController.resetPasswor
 router.put("/update-profile", authMiddleware, userController.updateProfile);
 router.get("/get-all-users", userController.getAllUsers);
 router.get("/get-user-by-id/:id", userController.getUserById);
-router.post("/update-user-address", authMiddleware, userController.updateUserAddress);
 
 module.exports = router;

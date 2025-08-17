@@ -1,3 +1,4 @@
+const { required } = require("joi");
 const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema(
@@ -33,17 +34,18 @@ const userSchema = new mongoose.Schema(
 		addresses: [
 			{
 				address: String,
-				location: {
-					type: {
-						type: String,
-						enum: ["Point"],
-						default: "Point",
-					},
-					coordinates: {
-						type: [Number], // [longitude, latitude]
-						required: true,
-					},
-				},
+				// location: {
+				// 	type: {
+				// 		type: String,
+				// 		enum: ["Point"],
+				// 		default: "Point",
+				// 		required: false,
+				// 	},
+				// 	coordinates: {
+				// 		type: [Number],
+				// 		required: false,
+				// 	},
+				// },
 			},
 		],
 
@@ -87,6 +89,6 @@ const userSchema = new mongoose.Schema(
 	}
 );
 
-userSchema.index({ 'addresses.location': '2dsphere' });
+userSchema.index({ "addresses.location": "2dsphere" });
 
 module.exports = mongoose.model("User", userSchema);
