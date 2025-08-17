@@ -3,13 +3,22 @@ const mongoose = require("mongoose");
 
 exports.getAllProducts = async (req, res) => {
 	try {
-		const products = await Product.find().populate("category");
+		const { search } = req.query;
+		console.log(search);
+
+		const query = {};
+		if (search) {
+			query.name = { $regex: search, $options: "i" }; // tìm kiếm không phân biệt hoa thường
+		}
+
+		const products = await Product.find(query).populate("category");
 		return res.status(200).json({ success: true, data: products });
 	} catch (error) {
 		console.log("Error in getAllProducts: ", error);
 		return res.status(500).json({ success: false, message: error.message });
 	}
 };
+
 
 exports.getProductByCategoryId = async (req, res) => {
 	try {

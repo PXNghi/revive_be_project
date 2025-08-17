@@ -21,14 +21,24 @@ exports.getProfileByToken = async (req, res) => {
 exports.updateUserById = async (req, res) => {
 	try {
 		const { id } = req.params;
+		const updateData = { ...req.body };
 
-		const updated = await User.findByIdAndUpdate(
-			id,
-			{ $set: req.body },
-			{ new: true }
-		);
+		// Nếu có address mới thì push vào mảng addresses
+		if (req.body.address) {
+			updateData.$push = {
+				addresses: {
+					address: req.body.address,
+					location: null,
+				},
+			};
+			delete updateData.address; // tránh bị set trực tiếp vào field address
+		}
 
-		if (!updated) {
+		const updatedUser = await User.findByIdAndUpdate(id, updateData, {
+			new: true,
+		});
+
+		if (!updatedUser) {
 			return res.status(404).json({
 				success: false,
 				message: "User not found",
@@ -37,11 +47,11 @@ exports.updateUserById = async (req, res) => {
 
 		return res.status(200).json({
 			success: true,
-			data: updated,
+			data: updatedUser,
 		});
 	} catch (error) {
-		console.log("Error updateProfile: ", error);
-		res.status(500).json({
+		console.log("Error updateUserById:", error);
+		return res.status(500).json({
 			success: false,
 			message: "Internal server error",
 		});
@@ -78,10 +88,10 @@ exports.updateUserAddress = async (req, res) => {
 		if (isUnique) {
 			user.addresses.push({
 				address,
-				location: {
-					type: "Point",
-					coordinates: [lon, lat],
-				},
+				// location: {
+				// 	type: "Point",
+				// 	coordinates: [lon, lat],
+				// },
 			});
 			await user.save();
 			return res.status(200).json({
@@ -187,26 +197,23 @@ exports.updateProfile = async (req, res) => {
 	try {
 		const userId = req.user.id;
 		if (!userId) {
-			return res
-				.status(400)
-				.json({
-					success: false,
-					message: "Không tìm thấy ID người dùng",
-				});
-		}
-		const { full_name, phone, image, addresses } = req.body;
-
-		const updatedData = {
-			full_name,
-			phone,
-			image,
-		};
-
-		if (addresses) {
-			updatedData.addresses = addresses;
+			return res.status(400).json({
+				success: false,
+				message: "Không tìm thấy ID người dùng",
+			});
 		}
 
-		const updatedUser = await User.findByIdAndUpdate(userId, updatedData, {
+		const { full_name, phone, image, address } = req.body;
+
+		const updateData = {};
+		if (full_name) updateData.full_name = full_name;
+		if (phone) updateData.phone = phone;
+		if (image) updateData.image = image;
+		if (address) {
+			updateData.$push = { addresses: { address } };
+		}
+
+		const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
 			new: true,
 			runValidators: true,
 		}).select(
@@ -214,15 +221,21 @@ exports.updateProfile = async (req, res) => {
 		);
 
 		if (!updatedUser) {
-			return res
-				.status(404)
-				.json({ success: false, message: "Không tìm thấy người dùng" });
+			return res.status(404).json({
+				success: false,
+				message: "Không tìm thấy người dùng",
+			});
 		}
 
-		return res.status(200).json({ success: true, data: updatedUser });
+		return res.status(200).json({
+			success: true,
+			data: updatedUser,
+		});
 	} catch (error) {
 		console.error("Lỗi tại updateProfile:", error.message);
-		return res.status(500).json({ success: false, message: error.message });
+		return res
+			.status(500)
+			.json({ success: false, message: "Lỗi server: " + error.message });
 	}
 };
 

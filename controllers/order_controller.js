@@ -2,10 +2,116 @@ const Order = require("../models/order_model");
 const DetailedOrder = require("../models/detailed_order_model");
 const Product = require("../models/product_model");
 const Category = require("../models/category_model");
+const mongoose = require("mongoose");
 
 exports.getAllOrders = async (req, res) => {
-	const orders = await Order.find().sort({ created_at: -1 });
-	res.status(200).json({ success: true, data: orders });
+	try {
+		const { search } = req.query;
+		const role = req.user.role;
+		const userId = req.user.id;
+
+		const pipeline = [
+			// Nếu là user thì chỉ lấy đơn của họ
+			...(role === "User"
+				? [{ $match: { userId: new mongoose.Types.ObjectId(userId) } }]
+				: []),
+
+			// Lookup sang detailedorders và products
+			{
+				$lookup: {
+					from: "detailedorders",
+					localField: "_id",
+					foreignField: "orderId",
+					as: "detailedOrders",
+					pipeline: [
+						{
+							$lookup: {
+								from: "products",
+								localField: "productId",
+								foreignField: "_id",
+								as: "productId",
+								pipeline: [
+									{
+										$lookup: {
+											from: "categories",
+											localField: "category",
+											foreignField: "_id",
+											as: "category",
+										},
+									},
+									{
+										$unwind: {
+											path: "$category",
+											preserveNullAndEmptyArrays: true,
+										},
+									},
+								],
+							},
+						},
+						{
+							$unwind: {
+								path: "$productId",
+								preserveNullAndEmptyArrays: true,
+							},
+						},
+					],
+				},
+			},
+
+			// Search sau khi đã lookup
+			...(search
+				? [
+						{
+							$match: {
+								$or: [
+									...(search.match(/^[0-9a-fA-F]{24}$/)
+										? [
+												{
+													_id: new mongoose.Types.ObjectId(
+														search
+													),
+												},
+										  ]
+										: []),
+									{
+										userName: {
+											$regex: search,
+											$options: "i",
+										},
+									},
+									{
+										userPhone: {
+											$regex: search,
+											$options: "i",
+										},
+									},
+									{
+										userAddress: {
+											$regex: search,
+											$options: "i",
+										},
+									},
+									{
+										"detailedOrders.productId.name": {
+											$regex: search,
+											$options: "i",
+										},
+									},
+								],
+							},
+						},
+				  ]
+				: []),
+
+			{ $sort: { created_at: -1 } },
+		];
+
+		const orders = await Order.aggregate(pipeline);
+		res.status(200).json({ success: true, data: orders });
+	} catch (error) {
+		console.error("Error in getAllOrders:", error);
+		res.status(500).json({ success: false, message: error.message });
+	}
 };
 
 exports.getAllDetailedOrdersByOrderId = async (req, res) => {
@@ -138,6 +244,7 @@ exports.updateOrderByAdmin = async (req, res) => {
 			orderFinishTime,
 			adminNote,
 			status,
+			totalPrice,
 		} = req.body;
 
 		const order = await Order.findById(orderId);
@@ -161,6 +268,7 @@ exports.updateOrderByAdmin = async (req, res) => {
 		if (deliveringStartTime !== undefined)
 			order.startTime = deliveringStartTime;
 		if (orderFinishTime !== undefined) order.endTime = orderFinishTime;
+		if (totalPrice !== undefined) order.totalPrice = totalPrice;
 
 		if (status !== undefined) {
 			if (!allowedStatuses.includes(status)) {
@@ -172,6 +280,17 @@ exports.updateOrderByAdmin = async (req, res) => {
 
 			// if old status is not completed and new status is completed
 			if (status === "completed" && order.status !== "completed") {
+				if (
+					totalPrice === "" ||
+					totalPrice === null ||
+					totalPrice === undefined
+				) {
+					return res.status(400).json({
+						success: false,
+						message: "Cần nhập tổng tiền của đơn hàng!",
+					});
+				}
+
 				const detailedOrders = await DetailedOrder.find({
 					orderId: order._id,
 				});
