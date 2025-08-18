@@ -40,7 +40,7 @@ exports.getAllConversation = async (req, res) => {
     }
     catch (error) {
         console.log("Error in sendMessage:", error);
-        res.status(500).json({ success: false, message: "Internal server error" });
+        res.status(500).json({ success: false, message: "Internal server error" }); 
     }
 }
 
