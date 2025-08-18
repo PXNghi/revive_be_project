@@ -44,71 +44,13 @@ exports.getAllConversation = async (req, res) => {
     }
 }
 
-// exports.getAllConversation = async (req, res) => {
-//     try {
-//         const currentUserId = req.user._id;
-//         const currentUserRole = req.user.role;
-
-//         const query = {
-//             "participants.userId": currentUserId,
-//         };
-
-//         const conversations = await Conversation.find(query)
-//             .populate("lastMessage")
-//             .populate("participants.userId", "full_name image role")
-//             .sort({ updated_at: -1 });
-
-//         let filteredConversations;
-
-//         if (currentUserRole === "User") {
-//             // User thường -> chỉ lấy duy nhất 1 conversation
-//             filteredConversations = conversations.slice(0, 1);
-//         } else {
-//             // Admin -> nhóm theo khách hàng (participant không phải admin)
-//             const seenCustomers = new Set();
-//             filteredConversations = conversations.filter(conv => {
-//                 const customer = conv.participants.find(
-//                     p => p.userId._id.toString() !== currentUserId.toString() && p.userId.role === "User"
-//                 );
-//                 if (!customer) return false;
-
-//                 if (seenCustomers.has(customer.userId._id.toString())) {
-//                     return false; // đã có rồi
-//                 }
-//                 seenCustomers.add(customer.userId._id.toString());
-//                 return true;
-//             });
-//         }
-
-//         const result = filteredConversations.map(conv => {
-//             const unreadInfo = conv.unreadCounts.find(
-//                 u => u.userId.equals(currentUserId)
-//             );
-//             return {
-//                 _id: conv._id,
-//                 participants: conv.participants,
-//                 lastMessage: conv.lastMessage || null,
-//                 unreadCount: unreadInfo?.count || 0,
-//                 updatedAt: conv.updatedAt,
-//             };
-//         });
-
-//         return res.status(200).json({ success: true, data: result });
-//     }
-//     catch (error) {
-//         console.log("Error in getAllConversation:", error);
-//         res.status(500).json({ success: false, message: "Internal server error" });
-//     }
-// };
-
-
-
 exports.getConversationById = async (req, res) => {
     try {   
         const currentUserId = req.user._id;
         const { conversationId } = req.params;
+        const page = parseInt(req.query.page) || 1; 
+        const limit = parseInt(req.query.limit) || 10;
 
-        // Kiểm tra cuộc trò chuyện đã tồn tại hay chưa
         const conversation = await Conversation.findById(conversationId);
         if (!conversation) {
             return res.status(404).json({ error: "Conversation not found" });
@@ -129,7 +71,7 @@ exports.getConversationById = async (req, res) => {
             }
         );
 
-        // Reset số lượng tin nhắn chưa đọc của user trong conversation
+        // Reset số lượng tin nhắn chưa đọc
         await Conversation.updateOne(
             {
                 _id: conversationId,
@@ -142,20 +84,28 @@ exports.getConversationById = async (req, res) => {
             }
         );
 
-        // Trả về danh sách tin nhắn đã đọc
+        // Tính skip từ page và limit
+        const skip = (page - 1) * limit;
+
         const messages = await Message.find({ conversationId })
-            .sort({ created_at: -1 })
+            .sort({ created_at: -1 }) // tin mới nhất trước
+            .skip(skip)
+            .limit(limit)
             .populate("senderId", "full_name image role");
+
+        const totalMessages = await Message.countDocuments({ conversationId });
+        const totalPages = Math.ceil(totalMessages / limit);
 
         return res.status(200).json({
             success: true,
             conversationId,
-            messages
+            messages,
+            page,
+            totalPages,
+            totalMessages
         });
     } catch (error) {
-        console.log("Error in sendMessage:", error);
+        console.log("Error in getConversationById:", error);
         res.status(500).json({ success: false, message: "Internal server error" });
     }
 }
-
-

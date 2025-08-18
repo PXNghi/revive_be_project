@@ -59,53 +59,84 @@ exports.updateUserById = async (req, res) => {
 };
 
 const MAX_DISTANCE_METERS = 100;
+// exports.updateUserAddress = async (req, res) => {
+// 	try {
+// 		const userId = req.user.id;
+// 		const { lat, lon, address } = req.body;
+
+// 		if (!lat || !lon || !address) {
+// 			return res
+// 				.status(400)
+// 				.json({ message: "Thiếu thông tin location." });
+// 		}
+
+// 		const user = await User.findById(userId);
+// 		if (!user)
+// 			return res.status(404).json({ message: "Không tìm thấy user." });
+
+// 		const isUnique = user.addresses.every((addr) => {
+// 			const distance = geolib.getDistance(
+// 				{ latitude: lat, longitude: lon },
+// 				{
+// 					latitude: addr.location.coordinates[1],
+// 					longitude: addr.location.coordinates[0],
+// 				}
+// 			);
+// 			return distance > MAX_DISTANCE_METERS;
+// 		});
+
+// 		if (isUnique) {
+// 			user.addresses.push({
+// 				address,
+// 				location: {
+// 					type: "Point",
+// 					coordinates: [lon, lat],
+// 				},
+// 			});
+// 			await user.save();
+// 			return res.status(200).json({
+// 				message: "Cập nhật địa chỉ mới thành công",
+// 				addresses: user.addresses,
+// 			});
+// 		}
+
+// 		return res.status(200).json({
+// 			message: "Địa chỉ đã tồn tại gần đó, không cần thêm mới.",
+// 		});
+// 	} catch (err) {
+// 		console.error(err);
+// 		res.status(500).json({ message: "Lỗi server khi cập nhật địa chỉ." });
+// 	}
+// };
 exports.updateUserAddress = async (req, res) => {
 	try {
-		const userId = req.user.id;
-		const { lat, lon, address } = req.body;
+		const { address } = req.body;
 
-		if (!lat || !lon || !address) {
+		if (!address) {
 			return res
 				.status(400)
-				.json({ message: "Thiếu thông tin location." });
+				.json({ success: false, message: "Thiếu địa chỉ" });
 		}
 
-		const user = await User.findById(userId);
-		if (!user)
-			return res.status(404).json({ message: "Không tìm thấy user." });
+		const user = await User.findById(req.user.id);
 
-		const isUnique = user.addresses.every((addr) => {
-			const distance = geolib.getDistance(
-				{ latitude: lat, longitude: lon },
-				{
-					latitude: addr.location.coordinates[1],
-					longitude: addr.location.coordinates[0],
-				}
-			);
-			return distance > MAX_DISTANCE_METERS;
-		});
+		if (!user) {
+			return res
+				.status(404)
+				.json({ success: false, message: "Không tìm thấy user" });
+		}
 
-		if (isUnique) {
-			user.addresses.push({
-				address,
-				// location: {
-				// 	type: "Point",
-				// 	coordinates: [lon, lat],
-				// },
-			});
+		const exists = user.addresses.some((a) => a.address === address);
+
+		if (!exists) {
+			user.addresses.push({ address });
 			await user.save();
-			return res.status(200).json({
-				message: "Cập nhật địa chỉ mới thành công",
-				addresses: user.addresses,
-			});
 		}
 
-		return res.status(200).json({
-			message: "Địa chỉ đã tồn tại gần đó, không cần thêm mới.",
-		});
+		return res.status(200).json({ success: true, data: user.addresses });
 	} catch (err) {
-		console.error(err);
-		res.status(500).json({ message: "Lỗi server khi cập nhật địa chỉ." });
+		console.error("Lỗi updateUserAddress:", err);
+		return res.status(500).json({ success: false, message: "Lỗi server" });
 	}
 };
 
