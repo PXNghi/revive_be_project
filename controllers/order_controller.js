@@ -412,11 +412,18 @@ exports.createOrder = async (req, res) => {
 
 const getOrdersWithDetails = async (filter, res) => {
 	try {
-		const sortField =
-			filter.status === "cancelled" ? "updated_at" : "created_at";
+		let sortField;
+
+		if (filter.status === "waiting") {
+			sortField = "pickUpDate";
+		} else if (filter.status === "cancelled") {
+			sortField = "updated_at";
+		} else {
+			sortField = "created_at";
+		}
 
 		const orders = await Order.find(filter)
-			.sort({ [sortField]: -1 })
+			.sort({ [sortField]: sortField === "pickUpDate" ? 1 : -1 })
 			.lean();
 
 		const orderIds = orders.map((order) => order._id);
